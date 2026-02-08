@@ -9,11 +9,11 @@ export function Solution() {
             Perfect Matches, <span className="text-pink-600">Mutual Growth</span>
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            MeeTchr uses AI to match you with your ideal teaching partner—someone who gets you,
+            MeeTchr uses AI to match you with your ideal teaching partner—someone who gets you, 
             supports you, and grows with you. Mentorship that benefits both partners equally.
           </p>
         </div>
-
+        
         <div className="max-w-4xl mx-auto">
           <div className="space-y-8">
             <div className="flex gap-4">
@@ -23,12 +23,12 @@ export function Solution() {
               <div>
                 <h3 className="text-2xl mb-2">Intelligent Matching</h3>
                 <p className="text-gray-600">
-                  Our algorithm finds your ideal teaching partner based on subject, experience, personality,
+                  Our algorithm finds your ideal teaching partner based on subject, experience, personality, 
                   and schedules—creating authentic connections that feel natural from day one.
                 </p>
               </div>
             </div>
-
+            
             <div className="flex gap-4">
               <div className="w-12 h-12 bg-coral-100 rounded-lg flex items-center justify-center shrink-0">
                 <Heart className="w-6 h-6 text-coral-600" />
@@ -36,12 +36,12 @@ export function Solution() {
               <div>
                 <h3 className="text-2xl mb-2">Mutual Growth & Fulfillment</h3>
                 <p className="text-gray-600">
-                  New teachers gain confidence and save hours each week. Veteran teachers rediscover
+                  New teachers gain confidence and save hours each week. Veteran teachers rediscover 
                   their purpose and remember why they fell in love with teaching. Both partners thrive.
                 </p>
               </div>
             </div>
-
+            
             <div className="flex gap-4">
               <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center shrink-0">
                 <Sparkles className="w-6 h-6 text-pink-600" />
@@ -49,12 +49,12 @@ export function Solution() {
               <div>
                 <h3 className="text-2xl mb-2">Conversations That Flow</h3>
                 <p className="text-gray-600">
-                  No awkward silences or forced meetings. Guided prompts and templates help conversations
+                  No awkward silences or forced meetings. Guided prompts and templates help conversations 
                   feel natural while keeping you both on track to reach your goals.
                 </p>
               </div>
             </div>
-
+            
             <div className="flex gap-4">
               <div className="w-12 h-12 bg-navy-100 rounded-lg flex items-center justify-center shrink-0">
                 <Users className="w-6 h-6 text-navy-800" />
@@ -62,7 +62,7 @@ export function Solution() {
               <div>
                 <h3 className="text-2xl mb-2">A Thriving Community</h3>
                 <p className="text-gray-600">
-                  Join a network where teachers at every stage support each other. Share wins,
+                  Join a network where teachers at every stage support each other. Share wins, 
                   troubleshoot challenges, and build connections that last beyond the school year.
                 </p>
               </div>

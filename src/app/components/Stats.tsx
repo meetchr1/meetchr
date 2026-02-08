@@ -5,7 +5,7 @@ export function Stats() {
     { value: "3x", label: "Higher retention for mentees" },
     { value: "12K+", label: "Successful mentorship pairs" }
   ];
-
+  
   return (
     <section className="py-20 bg-gradient-to-br from-pink-600 via-coral-500 to-navy-800 text-white">
       <div className="container mx-auto px-6 max-w-7xl">
@@ -14,11 +14,11 @@ export function Stats() {
             Transforming Careers on Both Sides
           </h2>
           <p className="text-xl text-pink-100 max-w-3xl mx-auto">
-            Novice teachers thrive with support. Veteran teachers rediscover purpose.
+            Novice teachers thrive with support. Veteran teachers rediscover purpose. 
             Everyone wins with meaningful mentorship.
           </p>
         </div>
-
+        
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {stats.map((stat, index) => (
             <div key={index} className="text-center">

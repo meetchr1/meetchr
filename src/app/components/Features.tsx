@@ -39,13 +39,13 @@ export function Features() {
       color: "navy"
     }
   ];
-
+  
   const colorMap: Record<string, { bg: string; icon: string }> = {
     pink: { bg: "bg-pink-100", icon: "text-pink-600" },
     coral: { bg: "bg-coral-100", icon: "text-coral-600" },
     navy: { bg: "bg-navy-100", icon: "text-navy-800" }
   };
-
+  
   return (
     <section id="features" className="py-20 bg-gray-50">
       <div className="container mx-auto px-6 max-w-7xl">
@@ -57,14 +57,14 @@ export function Features() {
             Every feature designed to make mentorship rewarding, natural, and mutually beneficial.
           </p>
         </div>
-
+        
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => {
             const colors = colorMap[feature.color];
             const Icon = feature.icon;
-
+            
             return (
-              <div
+              <div 
                 key={index}
                 className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow"
               >

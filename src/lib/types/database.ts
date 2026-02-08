@@ -1,20 +1,35 @@
 // Database types matching the Supabase schema
+// Updated to include all feature tables from 002_add_feature_tables.sql
 
+// ============================================================
+// 1. PROFILES
+// ============================================================
 export interface Profile {
   id: string;
   email: string;
   full_name: string | null;
   survey_completed: boolean;
   matched: boolean;
+  // Extended fields (from 002 migration)
+  location: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  years_experience: number | null;
+  teaching_focus: string[];
+  availability: string | null;
+  preferred_meeting_type: "video" | "chat" | "both";
   created_at: string;
   updated_at: string;
 }
 
+// ============================================================
+// 2. SURVEY RESPONSES
+// ============================================================
 export interface SurveyResponse {
   id: string;
   user_id: string;
 
-  // Logistics
+  // Logistics (Questions 1-9)
   district: string | null;
   school: string | null;
   role: "mentor" | "novice";
@@ -26,7 +41,7 @@ export interface SurveyResponse {
   title_1: string | null;
   time_commitment: string | null;
 
-  // Personality & Methodology
+  // Personality & Methodology (Questions 10-41)
   desk_situation: string | null;
   lesson_planning_style: string | null;
   classroom_management: string | null;
@@ -64,6 +79,9 @@ export interface SurveyResponse {
   updated_at: string;
 }
 
+// ============================================================
+// 3. MATCHES
+// ============================================================
 export interface Match {
   id: string;
   mentor_id: string;
@@ -73,7 +91,264 @@ export interface Match {
   matched_at: string;
 }
 
-// Type for the matching function response
+// ============================================================
+// 4. CHECK-INS (Weekly Vibe Checks)
+// ============================================================
+export interface CheckIn {
+  id: string;
+  user_id: string;
+  confidence: number;
+  energy: number;
+  note: string | null;
+  week_of: string;
+  created_at: string;
+}
+
+// ============================================================
+// 5. MESSAGES (Chat)
+// ============================================================
+export type SosCategory =
+  | "vent_session"
+  | "email_proofread"
+  | "lesson_pivot"
+  | "classroom_crisis"
+  | "observation_prep"
+  | "tech_support"
+  | "fresh_eyes_review";
+
+export interface Message {
+  id: string;
+  match_id: string;
+  sender_id: string;
+  content: string;
+  message_type: "normal" | "sos";
+  sos_category: SosCategory | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+// ============================================================
+// 6. VIDEO SESSIONS
+// ============================================================
+export interface VideoSession {
+  id: string;
+  match_id: string;
+  initiated_by: string | null;
+  room_url: string | null;
+  room_id: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  status: "pending" | "active" | "ended" | "cancelled";
+  created_at: string;
+}
+
+// ============================================================
+// 7. SHARED FILES (Workspace)
+// ============================================================
+export interface SharedFile {
+  id: string;
+  match_id: string;
+  uploaded_by: string;
+  file_name: string;
+  file_type: "document" | "image" | "spreadsheet" | "presentation" | "pdf" | "other" | null;
+  mime_type: string | null;
+  file_size_bytes: number | null;
+  storage_path: string;
+  created_at: string;
+}
+
+// ============================================================
+// 8. RESOURCES (System-wide Resource Library)
+// ============================================================
+export interface Resource {
+  id: string;
+  title: string;
+  description: string | null;
+  type: "article" | "video" | "guide" | "template" | "link" | null;
+  category: string;
+  url: string | null;
+  duration: string | null;
+  is_featured: boolean;
+  is_new: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// 9. RESOURCE BOOKMARKS
+// ============================================================
+export interface ResourceBookmark {
+  id: string;
+  user_id: string;
+  resource_id: string;
+  created_at: string;
+}
+
+// ============================================================
+// 10. SCHEDULED SESSIONS (Calendar)
+// ============================================================
+export type SessionType = "video" | "chat" | "check-in" | "observation" | "planning" | "open";
+export type SessionStatus = "upcoming" | "completed" | "cancelled";
+export type ReminderSetting = "none" | "15min" | "30min" | "1hr" | "1day";
+
+export interface ScheduledSession {
+  id: string;
+  match_id: string;
+  created_by: string;
+  title: string;
+  session_type: SessionType | null;
+  scheduled_date: string;
+  scheduled_time: string;
+  duration_minutes: number;
+  status: SessionStatus;
+  reminder: ReminderSetting;
+  confirmed: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// 11. GOALS
+// ============================================================
+export type GoalCategory =
+  | "classroom-management"
+  | "instruction"
+  | "student-relationships"
+  | "professional-development"
+  | "other";
+
+export type GoalStatus = "in-progress" | "completed" | "overdue";
+
+export interface Goal {
+  id: string;
+  match_id: string;
+  created_by: string;
+  title: string;
+  description: string | null;
+  category: GoalCategory | null;
+  target_date: string | null;
+  progress: number;
+  status: GoalStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// 12. GOAL MILESTONES
+// ============================================================
+export interface GoalMilestone {
+  id: string;
+  goal_id: string;
+  text: string;
+  completed: boolean;
+  completed_at: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+// ============================================================
+// 13. SESSION NOTES
+// ============================================================
+export interface ActionItem {
+  text: string;
+  completed: boolean;
+}
+
+export interface SessionNote {
+  id: string;
+  match_id: string;
+  created_by: string;
+  session_date: string;
+  session_type: "video" | "chat" | null;
+  duration_minutes: number | null;
+  topics: string[];
+  summary: string | null;
+  key_takeaways: string[];
+  action_items: ActionItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// 14. GUIDED PROMPTS
+// ============================================================
+export interface GuidedPromptCategory {
+  id: string;
+  key: string;
+  label: string;
+  icon_name: string | null;
+  color: string | null;
+  bg_color: string | null;
+  sort_order: number;
+}
+
+export interface GuidedPrompt {
+  id: string;
+  category_id: string;
+  prompt_text: string;
+  sort_order: number;
+  created_at: string;
+}
+
+// ============================================================
+// 15. ACHIEVEMENTS
+// ============================================================
+export interface Achievement {
+  id: string;
+  user_id: string;
+  achievement_key: string;
+  title: string;
+  description: string | null;
+  earned_at: string;
+}
+
+// ============================================================
+// 16. MATCH REQUESTS
+// ============================================================
+export interface MatchRequest {
+  id: string;
+  user_id: string;
+  current_match_id: string | null;
+  reason: string;
+  status: "pending" | "reviewed" | "approved" | "denied";
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+// ============================================================
+// 17. NOTIFICATION PREFERENCES
+// ============================================================
+export interface NotificationPreferences {
+  user_id: string;
+  email_notifications: boolean;
+  session_reminders: boolean;
+  weekly_progress: boolean;
+  sos_alerts: boolean;
+  updated_at: string;
+}
+
+// ============================================================
+// 18. PARTNERSHIP STATS
+// ============================================================
+export interface PartnershipStats {
+  match_id: string;
+  total_messages: number;
+  total_video_calls: number;
+  total_video_minutes: number;
+  total_files_shared: number;
+  total_sessions_completed: number;
+  total_goals_completed: number;
+  current_streak_weeks: number;
+  longest_streak_weeks: number;
+  last_activity_at: string | null;
+  updated_at: string;
+}
+
+// ============================================================
+// MATCHING FUNCTION RESPONSE
+// ============================================================
 export interface MatchResult {
   success: boolean;
   match_id?: string;
@@ -87,7 +362,9 @@ export interface MatchResult {
   error?: string;
 }
 
-// Helper: Convert camelCase form data to snake_case for database
+// ============================================================
+// HELPER: Convert camelCase form data to snake_case for database
+// ============================================================
 export function formDataToDbRow(
   formData: Record<string, string>,
   userId: string

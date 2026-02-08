@@ -24,7 +24,7 @@ export function Testimonials() {
       type: "mentee"
     }
   ];
-
+  
   return (
     <section id="testimonials" className="py-20 bg-white">
       <div className="container mx-auto px-6 max-w-7xl">
@@ -36,21 +36,21 @@ export function Testimonials() {
             New teachers finding confidence. Veteran teachers rediscovering purpose. Authentic partnerships that transform careers on both sides.
           </p>
         </div>
-
+        
         <div className="grid md:grid-cols-3 gap-8">
           {testimonials.map((testimonial, index) => (
-            <div
+            <div 
               key={index}
               className="bg-gray-50 p-8 rounded-xl relative"
             >
               <div className="flex items-center gap-2 mb-4">
                 <Quote className="w-10 h-10 text-pink-200" />
                 <span className={`text-xs px-3 py-1 rounded-full ${
-                  testimonial.type === "mentee"
-                    ? "bg-pink-100 text-pink-700"
-                    : "bg-coral-100 text-coral-700"
+                  testimonial.type === 'mentee' 
+                    ? 'bg-pink-100 text-pink-700' 
+                    : 'bg-coral-100 text-coral-700'
                 }`}>
-                  {testimonial.type === "mentee" ? "Mentee" : "Mentor"}
+                  {testimonial.type === 'mentee' ? 'Mentee' : 'Mentor'}
                 </span>
               </div>
               <p className="text-gray-700 mb-6 leading-relaxed">
