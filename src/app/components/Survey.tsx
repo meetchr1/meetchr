@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
+import type { MatchResult } from "@/lib/types/database";
 
 interface SurveyData {
   // Logistics
@@ -57,6 +58,9 @@ export function Survey() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Partial<SurveyData>>({});
   const [isComplete, setIsComplete] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const totalSteps = 5;
 
   const updateFormData = (field: keyof SurveyData, value: string) => {
@@ -77,17 +81,39 @@ export function Survey() {
     }
   };
 
-  const handleSubmit = () => {
-    console.log("Survey completed:", formData);
-    setIsComplete(true);
-    window.scrollTo(0, 0);
-    // TODO: Send data to backend/API
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch("/api/survey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSubmitError(data.error || "Failed to submit survey.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      setMatchResult(data.match);
+      setIsComplete(true);
+      window.scrollTo(0, 0);
+    } catch {
+      setSubmitError("Network error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const progress = (currentStep / totalSteps) * 100;
 
   if (isComplete) {
-    return <CompletionScreen />;
+    return <CompletionScreen matchResult={matchResult} />;
   }
 
   return (
@@ -151,6 +177,8 @@ export function Survey() {
               updateFormData={updateFormData}
               onSubmit={handleSubmit}
               onBack={prevStep}
+              isSubmitting={isSubmitting}
+              submitError={submitError}
             />
           )}
         </div>
@@ -213,6 +241,8 @@ interface StepProps {
   onNext?: () => void;
   onBack: () => void;
   onSubmit?: () => void;
+  isSubmitting?: boolean;
+  submitError?: string | null;
 }
 
 // Logistics Step (Questions 1-9)
@@ -1408,6 +1438,8 @@ function StepPersonality3({
   updateFormData,
   onSubmit,
   onBack,
+  isSubmitting,
+  submitError,
 }: StepProps) {
   return (
     <div className="space-y-8">
@@ -1790,21 +1822,39 @@ function StepPersonality3({
         </p>
       </div>
 
+      {/* Error Message */}
+      {submitError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {submitError}
+        </div>
+      )}
+
       {/* Navigation */}
       <div className="flex gap-4 pt-8 border-t">
         <button
           onClick={onBack}
-          className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 transition-all flex items-center gap-2"
+          disabled={isSubmitting}
+          className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 transition-all flex items-center gap-2 disabled:opacity-50"
         >
           <ArrowLeft className="w-5 h-5" />
           Back
         </button>
         <button
           onClick={onSubmit}
-          className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-600 to-coral-500 text-white rounded-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 group"
+          disabled={isSubmitting}
+          className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-600 to-coral-500 text-white rounded-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 group disabled:opacity-70"
         >
-          <CheckCircle className="w-5 h-5" />
-          Complete Survey
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              <CheckCircle className="w-5 h-5" />
+              Complete Survey
+            </>
+          )}
         </button>
       </div>
     </div>
@@ -1812,7 +1862,13 @@ function StepPersonality3({
 }
 
 // Completion Screen
-function CompletionScreen() {
+function CompletionScreen({
+  matchResult,
+}: {
+  matchResult: MatchResult | null;
+}) {
+  const wasMatched = matchResult?.success === true;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-coral-50 flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl shadow-2xl p-8 lg:p-12 max-w-2xl text-center">
@@ -1821,49 +1877,131 @@ function CompletionScreen() {
         </div>
 
         <h1 className="text-4xl lg:text-5xl mb-6">
-          You&apos;re All Set<span className="text-pink-600">!</span>
+          {wasMatched ? (
+            <>
+              You&apos;ve Been Matched
+              <span className="text-pink-600">!</span>
+            </>
+          ) : (
+            <>
+              You&apos;re All Set
+              <span className="text-pink-600">!</span>
+            </>
+          )}
         </h1>
 
-        <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-          Thank you for completing your profile! Our AI is already working on
-          finding your perfect teaching partner&mdash;someone who shares your
-          values, understands your style, and will help you thrive.
-        </p>
+        {wasMatched ? (
+          <>
+            <div className="w-32 h-32 mx-auto mb-6 relative">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                <path
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="#fce4ec"
+                  strokeWidth="3"
+                />
+                <path
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="url(#gradient)"
+                  strokeWidth="3"
+                  strokeDasharray={`${matchResult.compatibility_score}, 100`}
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient id="gradient">
+                    <stop offset="0%" stopColor="#db2777" />
+                    <stop offset="100%" stopColor="#f97316" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-3xl font-bold text-gray-900">
+                  {Math.round(matchResult.compatibility_score ?? 0)}%
+                </span>
+              </div>
+            </div>
 
-        <div className="bg-gradient-to-br from-pink-50 to-coral-50 border-2 border-pink-200 rounded-xl p-6 mb-8">
-          <h3 className="font-semibold text-gray-900 mb-3">
-            What happens next:
-          </h3>
-          <ul className="space-y-3 text-left text-gray-700">
-            <li className="flex items-start gap-3">
-              <span className="text-pink-600 mt-1">1.</span>
-              <span>
-                Our AI analyzes your responses to find your perfect teaching
-                partner
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              Great news! We found a compatible teaching partner for you.
+              You&apos;re a{" "}
+              <span className="font-bold text-pink-600">
+                {Math.round(matchResult.compatibility_score ?? 0)}% Match
               </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="text-pink-600 mt-1">2.</span>
-              <span>
-                You&apos;ll be matched with one compatible mentor or mentee
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="text-pink-600 mt-1">3.</span>
-              <span>
-                If no match exists yet, our system will continue working until
-                someone is available
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="text-pink-600 mt-1">4.</span>
-              <span>
-                Once matched, connect with your partner and begin your
-                mentorship journey!
-              </span>
-            </li>
-          </ul>
-        </div>
+              &mdash;based on your teaching style, personality, and goals!
+            </p>
+
+            <div className="bg-gradient-to-br from-pink-50 to-coral-50 border-2 border-pink-200 rounded-xl p-6 mb-8">
+              <h3 className="font-semibold text-gray-900 mb-3">
+                What happens next:
+              </h3>
+              <ul className="space-y-3 text-left text-gray-700">
+                <li className="flex items-start gap-3">
+                  <span className="text-pink-600 mt-1">1.</span>
+                  <span>
+                    Check your email&mdash;we&apos;ll send you details about
+                    your match
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-pink-600 mt-1">2.</span>
+                  <span>
+                    Connect with your teaching partner and introduce yourselves
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-pink-600 mt-1">3.</span>
+                  <span>
+                    Begin your mentorship journey together!
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              Thank you for completing your profile! Our AI is already working
+              on finding your perfect teaching partner&mdash;someone who shares
+              your values, understands your style, and will help you thrive.
+            </p>
+
+            <div className="bg-gradient-to-br from-pink-50 to-coral-50 border-2 border-pink-200 rounded-xl p-6 mb-8">
+              <h3 className="font-semibold text-gray-900 mb-3">
+                What happens next:
+              </h3>
+              <ul className="space-y-3 text-left text-gray-700">
+                <li className="flex items-start gap-3">
+                  <span className="text-pink-600 mt-1">1.</span>
+                  <span>
+                    Our AI analyzes your responses to find your perfect teaching
+                    partner
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-pink-600 mt-1">2.</span>
+                  <span>
+                    You&apos;ll be matched with one compatible mentor or mentee
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-pink-600 mt-1">3.</span>
+                  <span>
+                    If no match exists yet, our system will continue working
+                    until someone is available
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-pink-600 mt-1">4.</span>
+                  <span>
+                    Once matched, connect with your partner and begin your
+                    mentorship journey!
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
@@ -1876,7 +2014,7 @@ function CompletionScreen() {
         </div>
 
         <p className="text-sm text-gray-500 mt-8">
-          Check your email for updates on your matches and next steps.
+          Check your email for updates on your match and next steps.
         </p>
       </div>
     </div>
