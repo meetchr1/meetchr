@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, Video, Home, User, LogOut, Sparkles, FolderOpen, BookOpen, Calendar, Target, FileText } from "lucide-react";
+import { MessageSquare, Video, Home, User, LogOut, Sparkles, FolderOpen, BookOpen, Calendar, Target, FileText, Users, CheckCircle, Clock } from "lucide-react";
 import { Chat } from "./Chat";
 import { VideoCall } from "./VideoCall";
 import { Workspace } from "./Workspace";
@@ -10,7 +10,7 @@ import { Schedule } from "./Schedule";
 import { Goals } from "./Goals";
 import { Notes } from "./Notes";
 import { Profile } from "./Profile";
-import { WaitingForMatch } from "./WaitingForMatch";
+// WaitingForMatch state is now shown inline in the portal dashboard
 
 interface PortalProps {
   userType: "novice" | "veteran";
@@ -21,20 +21,17 @@ interface PortalProps {
 
 export function Portal({ userType, userName, partnerName, isMatched = true }: PortalProps) {
   const [activeView, setActiveView] = useState<"dashboard" | "chat" | "video" | "workspace" | "resources" | "schedule" | "goals" | "notes" | "profile">("dashboard");
-  
-  if (!isMatched) {
-    return <WaitingForMatch userName={userName} userType={userType} />;
-  }
 
-  return <PortalContent userType={userType} userName={userName} partnerName={partnerName} activeView={activeView} setActiveView={setActiveView} />;
+  return <PortalContent userType={userType} userName={userName} partnerName={partnerName} activeView={activeView} setActiveView={setActiveView} isMatched={isMatched} />;
 }
 
-function PortalContent({ userType, userName, partnerName, activeView, setActiveView }: {
+function PortalContent({ userType, userName, partnerName, activeView, setActiveView, isMatched }: {
   userType: "novice" | "veteran";
   userName: string;
   partnerName: string;
   activeView: "dashboard" | "chat" | "video" | "workspace" | "resources" | "schedule" | "goals" | "notes" | "profile";
   setActiveView: (view: "dashboard" | "chat" | "video" | "workspace" | "resources" | "schedule" | "goals" | "notes" | "profile") => void;
+  isMatched: boolean;
 }) {
   const [confidenceLevel, setConfidenceLevel] = useState(5);
   const [energyLevel, setEnergyLevel] = useState(5);
@@ -83,8 +80,31 @@ function PortalContent({ userType, userName, partnerName, activeView, setActiveV
           <div className="p-8 max-w-6xl mx-auto">
             <div className="mb-8">
               <h1 className="text-4xl mb-2">Welcome back, <span className="text-pink-600">{userName}</span>!</h1>
-              <p className="text-xl text-gray-600">{userType === "novice" ? `Your mentor ${partnerName} is here to support you` : `Your mentee ${partnerName} is excited to learn from you`}</p>
+              <p className="text-xl text-gray-600">
+                {isMatched
+                  ? (userType === "novice" ? `Your mentor ${partnerName} is here to support you` : `Your mentee ${partnerName} is excited to learn from you`)
+                  : `We're finding your perfect ${userType === "novice" ? "mentor" : "mentee"}...`}
+              </p>
             </div>
+
+            {!isMatched && (
+              <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 border-2 border-pink-200">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative w-14 h-14 flex-shrink-0">
+                    <div className="absolute inset-0 bg-gradient-to-br from-pink-100 to-coral-100 rounded-full animate-pulse"></div>
+                    <div className="absolute inset-0 flex items-center justify-center"><Users className="w-7 h-7 text-pink-600" /></div>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl text-gray-900">Matching in Progress</h2>
+                    <p className="text-gray-600">Our algorithm is searching for your ideal {userType === "novice" ? "mentor" : "mentee"}. This usually takes 24-48 hours.</p>
+                  </div>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full border border-green-200 text-green-700"><CheckCircle className="w-4 h-4" /> Survey Complete</div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-50 rounded-full border border-pink-200 text-pink-700"><Clock className="w-4 h-4 animate-spin" style={{ animationDuration: "3s" }} /> Finding your match</div>
+                </div>
+              </div>
+            )}
 
             <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 border-2 border-pink-200">
               <div className="flex items-center gap-3 mb-6">
@@ -108,27 +128,44 @@ function PortalContent({ userType, userName, partnerName, activeView, setActiveV
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <button onClick={() => setActiveView("chat")} className="bg-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all border-2 border-transparent hover:border-pink-600 text-left group">
-                <MessageSquare className="w-12 h-12 text-pink-600 mb-4 group-hover:scale-110 transition-transform" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Start Chatting</h3>
-                <p className="text-gray-600">Continue your conversation with {partnerName}</p>
-              </button>
-              <button onClick={() => setActiveView("video")} className="bg-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all border-2 border-transparent hover:border-coral-500 text-left group">
-                <Video className="w-12 h-12 text-coral-500 mb-4 group-hover:scale-110 transition-transform" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Start Video Call</h3>
-                <p className="text-gray-600">Connect face-to-face with {partnerName}</p>
-              </button>
-            </div>
+            {isMatched ? (
+              <>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <button onClick={() => setActiveView("chat")} className="bg-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all border-2 border-transparent hover:border-pink-600 text-left group">
+                    <MessageSquare className="w-12 h-12 text-pink-600 mb-4 group-hover:scale-110 transition-transform" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Start Chatting</h3>
+                    <p className="text-gray-600">Continue your conversation with {partnerName}</p>
+                  </button>
+                  <button onClick={() => setActiveView("video")} className="bg-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all border-2 border-transparent hover:border-coral-500 text-left group">
+                    <Video className="w-12 h-12 text-coral-500 mb-4 group-hover:scale-110 transition-transform" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Start Video Call</h3>
+                    <p className="text-gray-600">Connect face-to-face with {partnerName}</p>
+                  </button>
+                </div>
 
-            <div className="mt-8 bg-gradient-to-br from-pink-50 to-coral-50 rounded-xl p-8 border-2 border-pink-200">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Your Partnership</h3>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="text-center"><div className="text-3xl font-bold text-pink-600 mb-1">12</div><div className="text-gray-600">Days Connected</div></div>
-                <div className="text-center"><div className="text-3xl font-bold text-coral-500 mb-1">8</div><div className="text-gray-600">Video Calls</div></div>
-                <div className="text-center"><div className="text-3xl font-bold text-navy-900 mb-1">156</div><div className="text-gray-600">Messages Exchanged</div></div>
+                <div className="mt-8 bg-gradient-to-br from-pink-50 to-coral-50 rounded-xl p-8 border-2 border-pink-200">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Your Partnership</h3>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div className="text-center"><div className="text-3xl font-bold text-pink-600 mb-1">12</div><div className="text-gray-600">Days Connected</div></div>
+                    <div className="text-center"><div className="text-3xl font-bold text-coral-500 mb-1">8</div><div className="text-gray-600">Video Calls</div></div>
+                    <div className="text-center"><div className="text-3xl font-bold text-navy-900 mb-1">156</div><div className="text-gray-600">Messages Exchanged</div></div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-6">
+                <button onClick={() => setActiveView("resources")} className="bg-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all border-2 border-transparent hover:border-pink-600 text-left group">
+                  <BookOpen className="w-12 h-12 text-pink-600 mb-4 group-hover:scale-110 transition-transform" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Explore Resources</h3>
+                  <p className="text-gray-600">Browse teaching resources while you wait</p>
+                </button>
+                <button onClick={() => setActiveView("profile")} className="bg-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all border-2 border-transparent hover:border-coral-500 text-left group">
+                  <User className="w-12 h-12 text-coral-500 mb-4 group-hover:scale-110 transition-transform" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Complete Your Profile</h3>
+                  <p className="text-gray-600">Add more details to help with matching</p>
+                </button>
               </div>
-            </div>
+            )}
 
             <div className="mt-8">
               <h3 className="text-2xl font-semibold text-gray-900 mb-4">Your <span className="text-pink-600">Achievements</span></h3>
@@ -152,15 +189,35 @@ function PortalContent({ userType, userName, partnerName, activeView, setActiveV
           </div>
         )}
 
-        {activeView === "chat" && <Chat userName={userName} partnerName={partnerName} userType={userType} />}
-        {activeView === "video" && <VideoCall userName={userName} partnerName={partnerName} />}
-        {activeView === "workspace" && <Workspace userName={userName} partnerName={partnerName} />}
+        {activeView === "chat" && (isMatched ? <Chat userName={userName} partnerName={partnerName} userType={userType} /> : <FeatureLockedMessage feature="Chat" userName={userName} userType={userType} onGoBack={() => setActiveView("dashboard")} />)}
+        {activeView === "video" && (isMatched ? <VideoCall userName={userName} partnerName={partnerName} /> : <FeatureLockedMessage feature="Video Call" userName={userName} userType={userType} onGoBack={() => setActiveView("dashboard")} />)}
+        {activeView === "workspace" && (isMatched ? <Workspace userName={userName} partnerName={partnerName} /> : <FeatureLockedMessage feature="Workspace" userName={userName} userType={userType} onGoBack={() => setActiveView("dashboard")} />)}
         {activeView === "resources" && <ResourceLibrary />}
-        {activeView === "schedule" && <Schedule userName={userName} partnerName={partnerName} userType={userType} />}
-        {activeView === "goals" && <Goals userName={userName} partnerName={partnerName} userType={userType} />}
-        {activeView === "notes" && <Notes userName={userName} partnerName={partnerName} userType={userType} />}
-        {activeView === "profile" && <Profile userName={userName} partnerName={partnerName} userType={userType} />}
+        {activeView === "schedule" && <Schedule userName={userName} partnerName={partnerName || "Your Partner"} userType={userType} />}
+        {activeView === "goals" && <Goals userName={userName} partnerName={partnerName || "Your Partner"} userType={userType} />}
+        {activeView === "notes" && (isMatched ? <Notes userName={userName} partnerName={partnerName} userType={userType} /> : <FeatureLockedMessage feature="Session Notes" userName={userName} userType={userType} onGoBack={() => setActiveView("dashboard")} />)}
+        {activeView === "profile" && <Profile userName={userName} partnerName={partnerName || "Your Partner"} userType={userType} />}
       </main>
+    </div>
+  );
+}
+
+function FeatureLockedMessage({ feature, userName, userType, onGoBack }: { feature: string; userName: string; userType: "novice" | "veteran"; onGoBack: () => void }) {
+  return (
+    <div className="p-8 max-w-2xl mx-auto">
+      <div className="bg-white rounded-2xl shadow-lg p-12 text-center border-2 border-pink-200">
+        <div className="relative w-20 h-20 mx-auto mb-6">
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-100 to-coral-100 rounded-full animate-pulse"></div>
+          <div className="absolute inset-0 flex items-center justify-center"><Users className="w-10 h-10 text-pink-600" /></div>
+        </div>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-3">{feature} Unlocks After Matching</h2>
+        <p className="text-gray-600 mb-6">
+          Once you&apos;re paired with your {userType === "novice" ? "mentor" : "mentee"}, you&apos;ll be able to use {feature.toLowerCase()} to connect and collaborate.
+        </p>
+        <button onClick={onGoBack} className="px-6 py-3 bg-gradient-to-r from-pink-600 to-coral-500 text-white rounded-lg hover:shadow-lg transition-all">
+          Back to Dashboard
+        </button>
+      </div>
     </div>
   );
 }
