@@ -32,19 +32,39 @@ function LoginForm() {
 
     const supabase = createClient();
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const signInPromise = supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (signInError) {
-      setError(signInError.message);
+      // Timeout after 15 seconds so the spinner doesn't hang forever
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Request timed out. Please try again later.")),
+          15000
+        )
+      );
+
+      const { error: signInError } = await Promise.race([
+        signInPromise,
+        timeoutPromise,
+      ]);
+
+      if (signInError) {
+        setError(signInError.message);
+        setLoading(false);
+        return;
+      }
+
+      router.push(redirectTo);
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
       setLoading(false);
-      return;
     }
-
-    router.push(redirectTo);
-    router.refresh();
   };
 
   return (

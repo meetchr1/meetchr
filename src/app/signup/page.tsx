@@ -43,33 +43,53 @@ export default function SignUpPage() {
 
     const supabase = createClient();
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    try {
+      const signUpPromise = supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+      });
 
-    if (signUpError) {
-      setError(signUpError.message);
+      // Timeout after 15 seconds so the spinner doesn't hang forever
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Request timed out. Please try again later.")),
+          15000
+        )
+      );
+
+      const { data, error: signUpError } = await Promise.race([
+        signUpPromise,
+        timeoutPromise,
+      ]);
+
+      if (signUpError) {
+        setError(signUpError.message);
+        setLoading(false);
+        return;
+      }
+
+      // If session exists, email confirmation is disabled — redirect immediately
+      if (data.session) {
+        router.push("/survey");
+        router.refresh();
+        return;
+      }
+
+      // No session means email confirmation is required
+      setEmailSent(true);
       setLoading(false);
-      return;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
+      setLoading(false);
     }
-
-    // If session exists, email confirmation is disabled — redirect immediately
-    if (data.session) {
-      router.push("/survey");
-      router.refresh();
-      return;
-    }
-
-    // No session means email confirmation is required
-    setEmailSent(true);
-    setLoading(false);
   };
 
   // Show confirmation message after sign-up
