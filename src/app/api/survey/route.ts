@@ -31,6 +31,35 @@ export async function POST(request: Request) {
       );
     }
 
+    // Ensure a profile exists for this user (it may not if the user
+    // signed up before the database tables were created)
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .single();
+
+    if (!existingProfile) {
+      const { error: insertProfileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          email: user.email!,
+          full_name: user.user_metadata?.full_name || "",
+        });
+
+      if (insertProfileError) {
+        console.error("Profile creation error:", insertProfileError);
+        return NextResponse.json(
+          {
+            error: `Failed to create profile: ${insertProfileError.message}`,
+            code: insertProfileError.code,
+          },
+          { status: 500 }
+        );
+      }
+    }
+
     // Convert camelCase form data to snake_case DB row
     const dbRow = formDataToDbRow(formData, user.id);
 
