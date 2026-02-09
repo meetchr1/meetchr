@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, Video, Home, User, LogOut, Sparkles, FolderOpen, BookOpen, Calendar, Target, FileText, Users, CheckCircle, Clock } from "lucide-react";
+import { MessageSquare, Video, Home, User, LogOut, Sparkles, FolderOpen, BookOpen, Calendar, Target, FileText, Users, CheckCircle, Clock, RefreshCw } from "lucide-react";
 import { Chat } from "./Chat";
 import { VideoCall } from "./VideoCall";
 import { Workspace } from "./Workspace";
@@ -10,7 +10,7 @@ import { Schedule } from "./Schedule";
 import { Goals } from "./Goals";
 import { Notes } from "./Notes";
 import { Profile } from "./Profile";
-// WaitingForMatch state is now shown inline in the portal dashboard
+import { Survey } from "./Survey";
 
 interface PortalProps {
   userType: "novice" | "veteran";
@@ -19,8 +19,10 @@ interface PortalProps {
   isMatched?: boolean;
 }
 
+type PortalView = "dashboard" | "chat" | "video" | "workspace" | "resources" | "schedule" | "goals" | "notes" | "profile" | "retake-survey";
+
 export function Portal({ userType, userName, partnerName, isMatched = true }: PortalProps) {
-  const [activeView, setActiveView] = useState<"dashboard" | "chat" | "video" | "workspace" | "resources" | "schedule" | "goals" | "notes" | "profile">("dashboard");
+  const [activeView, setActiveView] = useState<PortalView>("dashboard");
 
   return <PortalContent userType={userType} userName={userName} partnerName={partnerName} activeView={activeView} setActiveView={setActiveView} isMatched={isMatched} />;
 }
@@ -29,8 +31,8 @@ function PortalContent({ userType, userName, partnerName, activeView, setActiveV
   userType: "novice" | "veteran";
   userName: string;
   partnerName: string;
-  activeView: "dashboard" | "chat" | "video" | "workspace" | "resources" | "schedule" | "goals" | "notes" | "profile";
-  setActiveView: (view: "dashboard" | "chat" | "video" | "workspace" | "resources" | "schedule" | "goals" | "notes" | "profile") => void;
+  activeView: PortalView;
+  setActiveView: (view: PortalView) => void;
   isMatched: boolean;
 }) {
   const [confidenceLevel, setConfidenceLevel] = useState(5);
@@ -51,6 +53,7 @@ function PortalContent({ userType, userName, partnerName, activeView, setActiveV
     { key: "schedule", icon: Calendar, title: "Schedule" },
     { key: "goals", icon: Target, title: "Goals" },
     { key: "notes", icon: FileText, title: "Notes" },
+    { key: "retake-survey", icon: RefreshCw, title: "Retake Survey" },
   ] as const;
 
   return (
@@ -197,8 +200,65 @@ function PortalContent({ userType, userName, partnerName, activeView, setActiveV
         {activeView === "goals" && <Goals userName={userName} partnerName={partnerName || "Your Partner"} userType={userType} />}
         {activeView === "notes" && (isMatched ? <Notes userName={userName} partnerName={partnerName} userType={userType} /> : <FeatureLockedMessage feature="Session Notes" userName={userName} userType={userType} onGoBack={() => setActiveView("dashboard")} />)}
         {activeView === "profile" && <Profile userName={userName} partnerName={partnerName || "Your Partner"} userType={userType} />}
+        {activeView === "retake-survey" && <RetakeSurvey onComplete={() => setActiveView("dashboard")} onCancel={() => setActiveView("dashboard")} />}
       </main>
     </div>
+  );
+}
+
+function RetakeSurvey({ onComplete, onCancel }: { onComplete: () => void; onCancel: () => void }) {
+  const [confirmed, setConfirmed] = useState(false);
+
+  if (!confirmed) {
+    return (
+      <div className="p-8 max-w-2xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg p-8 border-2 border-pink-200">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-pink-100 to-coral-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <RefreshCw className="w-8 h-8 text-pink-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Retake Your Survey</h2>
+            <p className="text-gray-600">
+              Want to find a new teaching partner? Retaking the survey will update your preferences and our algorithm will search for a better match.
+            </p>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-amber-800 mb-1">What happens when you retake the survey:</h3>
+            <ul className="text-sm text-amber-700 space-y-1">
+              <li className="flex items-start gap-2"><span className="mt-0.5">•</span> Your previous survey responses will be replaced</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5">•</span> Our matching algorithm will run again with your new answers</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5">•</span> You may be matched with a different partner</li>
+            </ul>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => setConfirmed(true)}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-600 to-coral-500 text-white rounded-lg hover:shadow-lg transition-all font-semibold flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-5 h-5" />
+              Start Survey
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Survey
+      onComplete={() => {
+        onComplete();
+        window.location.reload();
+      }}
+    />
   );
 }
 
