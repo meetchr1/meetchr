@@ -92,7 +92,10 @@ export function Survey({ onComplete }: SurveyProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        setSubmitError(data.error || "Failed to submit survey.");
+        const detail = data.code ? ` (${data.code})` : "";
+        setSubmitError(
+          (data.error || "Failed to submit survey.") + detail
+        );
         setIsSubmitting(false);
         return;
       }

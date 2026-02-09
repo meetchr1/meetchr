@@ -42,7 +42,11 @@ export async function POST(request: Request) {
     if (surveyError) {
       console.error("Survey insert error:", surveyError);
       return NextResponse.json(
-        { error: "Failed to save survey response." },
+        {
+          error: `Failed to save survey response: ${surveyError.message}`,
+          code: surveyError.code,
+          details: surveyError.details,
+        },
         { status: 500 }
       );
     }
@@ -56,7 +60,11 @@ export async function POST(request: Request) {
     if (profileError) {
       console.error("Profile update error:", profileError);
       return NextResponse.json(
-        { error: "Failed to update profile." },
+        {
+          error: `Failed to update profile: ${profileError.message}`,
+          code: profileError.code,
+          details: profileError.details,
+        },
         { status: 500 }
       );
     }
