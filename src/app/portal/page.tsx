@@ -1,129 +1,293 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Portal } from "@/app/components/Portal";
-import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Loader2, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { ProductNav } from "@/app/components/ProductNav";
+import {
+  buildHelpRequestUrl,
+  toHelpCategory,
+  type HelpCategory,
+} from "@/lib/portal/quickAction";
 
-interface PortalData {
-  userName: string;
-  partnerName: string;
-  userType: "novice" | "veteran";
-  isMatched: boolean;
-}
+const HEAVINESS_OPTIONS = ["light", "manageable", "heavy", "not_ok"] as const;
+const HELP_OPTIONS = ["classroom", "planning", "parents", "admin", "self"] as const;
+
+type Heaviness = (typeof HEAVINESS_OPTIONS)[number];
+
+type CheckinRow = {
+  id: string;
+  date: string;
+  heaviness: Heaviness;
+  theme: HelpCategory;
+  note: string | null;
+};
 
 export default function PortalPage() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(true);
-  const [portalData, setPortalData] = useState<PortalData | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [name, setName] = useState("Teacher");
+  const [heaviness, setHeaviness] = useState<Heaviness | null>(null);
+  const [theme, setTheme] = useState<HelpCategory>("classroom");
+  const [checkins, setCheckins] = useState<CheckinRow[]>([]);
+  const [helpCategory, setHelpCategory] = useState<HelpCategory>("classroom");
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  const loadPortal = useCallback(async () => {
+    setError(null);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      router.replace("/login?redirect=/portal");
+      return;
+    }
+
+    setUserId(user.id);
+
+    const { error: profileError } = await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        email: user.email ?? "",
+        display_name:
+          (user.user_metadata?.display_name as string | undefined) ??
+          (user.user_metadata?.full_name as string | undefined) ??
+          user.email?.split("@")[0] ??
+          "Teacher",
+      },
+      { onConflict: "id" }
+    );
+
+    if (profileError) {
+      setError(profileError.message);
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name, pseudonym")
+      .eq("id", user.id)
+      .single();
+    setName(profile?.display_name || profile?.pseudonym || "Teacher");
+
+    const { data: recent, error: checkinsError } = await supabase
+      .from("checkins")
+      .select("id, date, heaviness, theme, note")
+      .eq("user_id", user.id)
+      .order("date", { ascending: false })
+      .limit(7);
+
+    if (checkinsError) {
+      setError(checkinsError.message);
+      setCheckins([]);
+      return;
+    }
+
+    const rows = (recent ?? []) as CheckinRow[];
+    setCheckins(rows);
+    const todayRow = rows.find((row) => row.date === today);
+    setHeaviness(todayRow?.heaviness ?? null);
+    setTheme(toHelpCategory(todayRow?.theme ?? "classroom"));
+  }, [router, supabase, today]);
 
   useEffect(() => {
-    const loadPortalData = async () => {
-      try {
-        const { createClient } = await import("@/lib/supabase/client");
-        const supabase = createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-        if (authError || !user) {
-          // No auth available — fall back to demo mode
-          setPortalData({
-            userName: "Sarah",
-            partnerName: "Ms. Rodriguez",
-            userType: "novice",
-            isMatched: true,
-          });
-          setLoading(false);
-          return;
-        }
-
-        // Fetch user profile
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, survey_completed, matched")
-          .eq("id", user.id)
-          .single();
-
-        if (!profile?.survey_completed) {
-          router.push("/survey");
-          return;
-        }
-
-        const userName = profile.full_name || user.email?.split("@")[0] || "Teacher";
-
-        // Fetch user's survey response for role
-        const { data: survey } = await supabase
-          .from("survey_responses")
-          .select("role")
-          .eq("user_id", user.id)
-          .single();
-
-        const userType: "novice" | "veteran" = survey?.role === "mentor" ? "veteran" : "novice";
-
-        // Check if user has an active match
-        let partnerName = "";
-        let isMatched = false;
-
-        if (profile.matched) {
-          const { data: match } = await supabase
-            .from("matches")
-            .select("mentor_id, novice_id, status")
-            .or(`mentor_id.eq.${user.id},novice_id.eq.${user.id}`)
-            .in("status", ["pending", "active"])
-            .limit(1)
-            .single();
-
-          if (match) {
-            isMatched = true;
-            const partnerId = match.mentor_id === user.id ? match.novice_id : match.mentor_id;
-
-            const { data: partnerProfile } = await supabase
-              .from("profiles")
-              .select("full_name")
-              .eq("id", partnerId)
-              .single();
-
-            partnerName = partnerProfile?.full_name || "Your Partner";
-          }
-        }
-
-        setPortalData({
-          userName,
-          partnerName,
-          userType,
-          isMatched,
-        });
-      } catch {
-        // Supabase connection failed — fall back to demo mode
-        setPortalData({
-          userName: "Sarah",
-          partnerName: "Ms. Rodriguez",
-          userType: "novice",
-          isMatched: true,
-        });
+    let active = true;
+    const run = async () => {
+      await loadPortal();
+      if (active) {
+        setLoading(false);
       }
-      setLoading(false);
     };
+    void run();
+    return () => {
+      active = false;
+    };
+  }, [loadPortal]);
 
-    loadPortalData();
-  }, [router]);
+  const saveCheckin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !heaviness) {
+      return;
+    }
 
-  if (loading || !portalData) {
+    setSaving(true);
+    setError(null);
+    const { error: upsertError } = await supabase.from("checkins").upsert(
+      {
+        user_id: userId,
+        date: today,
+        heaviness,
+        theme,
+        note: null,
+      },
+      { onConflict: "user_id,date" }
+    );
+
+    if (upsertError) {
+      setError(upsertError.message);
+      setSaving(false);
+      return;
+    }
+
+    await loadPortal();
+    setSaving(false);
+  };
+
+  const signOut = async () => {
+    setSigningOut(true);
+    await fetch("/api/auth/signout", { method: "POST" });
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-coral-50">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-pink-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading your portal...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
       </div>
     );
   }
 
   return (
-    <Portal
-      userType={portalData.userType}
-      userName={portalData.userName}
-      partnerName={portalData.partnerName}
-      isMatched={portalData.isMatched}
-    />
+    <main className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-3xl mx-auto space-y-5">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gray-900">Teacher Portal</h1>
+            <button
+              type="button"
+              onClick={signOut}
+              disabled={signingOut}
+              className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign out
+            </button>
+          </div>
+          <p className="text-sm text-gray-600">
+            Check in quickly, then route to the right support.
+          </p>
+          <ProductNav current="/portal" />
+        </div>
+
+        <p className="text-gray-600">Hi {name}, how is today feeling?</p>
+
+        <form
+          onSubmit={saveCheckin}
+          className="bg-white rounded-xl border border-gray-200 p-5 space-y-4"
+        >
+          <section>
+            <h2 className="text-sm font-semibold text-gray-800 mb-2">
+              Daily heaviness check-in
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {HEAVINESS_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setHeaviness(option)}
+                  className={`px-3 py-2 rounded-lg border text-sm ${
+                    heaviness === option
+                      ? "border-pink-600 bg-pink-50 text-pink-700"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <label
+              htmlFor="checkin-theme"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Theme
+            </label>
+            <select
+              id="checkin-theme"
+              value={theme}
+              onChange={(e) => setTheme(toHelpCategory(e.target.value))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              {HELP_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </section>
+
+          <button
+            type="submit"
+            disabled={saving || !heaviness}
+            className="px-4 py-2 rounded-lg bg-pink-600 text-white text-sm hover:bg-pink-700 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save check-in"}
+          </button>
+        </form>
+
+        <section className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-gray-800">
+            I need help with...
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {HELP_OPTIONS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setHelpCategory(option)}
+                className={`px-3 py-2 text-sm rounded-lg border ${
+                  helpCategory === option
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+          <Link
+            href={buildHelpRequestUrl(helpCategory)}
+            className="inline-flex items-center px-4 py-2 rounded-lg border border-blue-300 text-blue-700 text-sm hover:bg-blue-50"
+          >
+            Open help request
+          </Link>
+        </section>
+
+        <section className="bg-white rounded-xl border border-gray-200 p-5">
+          <h2 className="text-sm font-semibold text-gray-800 mb-3">
+            Last 7 check-ins
+          </h2>
+          {checkins.length === 0 ? (
+            <p className="text-sm text-gray-500">No check-ins yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {checkins.map((row) => (
+                <li
+                  key={row.id}
+                  className="text-sm text-gray-700 border-b border-gray-100 pb-2 last:border-b-0"
+                >
+                  <span className="font-medium">{row.date}</span> - {row.heaviness} -{" "}
+                  {row.theme}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+      </div>
+    </main>
   );
 }

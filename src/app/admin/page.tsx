@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ProductNav } from "@/app/components/ProductNav";
 
 type DashboardAggregates = {
   heaviness_trends: Array<{ date: string; heaviness: string; count: number }>;
@@ -42,7 +42,7 @@ export default function AdminPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/login?redirect=/app/admin");
+        router.replace("/login?redirect=/admin");
         return;
       }
 
@@ -53,7 +53,7 @@ export default function AdminPage() {
         .single();
 
       if (profile?.role !== "admin") {
-        router.replace("/app");
+        router.replace("/portal");
         return;
       }
 
@@ -92,11 +92,12 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-5xl mx-auto space-y-5">
-        <div className="flex items-center justify-between">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
           <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <Link href="/app" className="text-sm text-pink-600 hover:text-pink-700">
-            Back to Home
-          </Link>
+          <p className="text-sm text-gray-600">
+            Privacy-safe trends and aggregate outcomes only.
+          </p>
+          <ProductNav current="/admin" />
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

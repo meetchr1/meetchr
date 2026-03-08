@@ -44,7 +44,7 @@ export default function TeacherHomePage() {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      router.replace("/login?redirect=/app");
+      router.replace("/login?redirect=/portal");
       return;
     }
 

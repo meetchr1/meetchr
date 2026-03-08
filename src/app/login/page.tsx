@@ -17,7 +17,7 @@ export default function LoginPage() {
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/app";
+  const redirectTo = searchParams.get("redirect") || "/portal";
   const urlError = searchParams.get("error");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);

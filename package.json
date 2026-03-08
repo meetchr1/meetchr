@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/ai/coach.test.ts"
+    "test": "tsx --test src/lib/ai/coach.test.ts src/lib/portal/quickAction.test.ts src/lib/help/matching.test.ts"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.87.0",

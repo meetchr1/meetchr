@@ -79,13 +79,19 @@ export async function POST(request: Request) {
   const conversationId = convResult.conversationId;
   const now = new Date().toISOString();
 
-  await supabase.from("coach_messages").insert({
+  const { error: userMessageError } = await supabase.from("coach_messages").insert({
     conversation_id: conversationId,
     sender_id: user.id,
     content_type: "text",
     content: message,
     metadata: { role: "user" },
   });
+  if (userMessageError) {
+    return NextResponse.json(
+      { error: "Failed to store user message" },
+      { status: 500 }
+    );
+  }
 
   let parsed: CoachReply;
   try {
@@ -100,15 +106,21 @@ export async function POST(request: Request) {
   const keywordCrisis = hasSelfHarmKeywords(message);
   const crisis = parsed.meta.crisis_flag || keywordCrisis;
 
-  await supabase.from("coach_messages").insert({
+  const { error: assistantMessageError } = await supabase.from("coach_messages").insert({
     conversation_id: conversationId,
     sender_id: null,
     content_type: "text",
     content: parsed.text,
-    metadata: parsed.meta,
+    metadata: { ...parsed.meta, crisis_flag: crisis, role: "assistant" },
   });
+  if (assistantMessageError) {
+    return NextResponse.json(
+      { error: "Failed to store assistant message" },
+      { status: 500 }
+    );
+  }
 
-  await supabase
+  const { error: conversationUpdateError } = await supabase
     .from("conversations")
     .update({
       last_message_at: now,
@@ -120,11 +132,17 @@ export async function POST(request: Request) {
       },
     })
     .eq("id", conversationId);
+  if (conversationUpdateError) {
+    return NextResponse.json(
+      { error: "Failed to update conversation" },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({
     conversationId,
     reply: parsed.text,
-    meta: parsed.meta,
+    meta: { ...parsed.meta, crisis_flag: crisis },
     crisis,
   });
 }

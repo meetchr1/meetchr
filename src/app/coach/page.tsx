@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Loader2, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ProductNav } from "@/app/components/ProductNav";
 
 type CoachMessage = {
   id: string;
@@ -34,7 +34,7 @@ export default function CoachPage() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      router.replace("/login?redirect=/app/coach");
+      router.replace("/login?redirect=/coach");
       return;
     }
 
@@ -77,7 +77,17 @@ export default function CoachPage() {
   }, [router, supabase]);
 
   useEffect(() => {
-    loadConversation().finally(() => setLoading(false));
+    let active = true;
+    const run = async () => {
+      await loadConversation();
+      if (active) {
+        setLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      active = false;
+    };
   }, [loadConversation]);
 
   const startConversation = async () => {
@@ -87,7 +97,7 @@ export default function CoachPage() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      router.replace("/login?redirect=/app/coach");
+      router.replace("/login?redirect=/coach");
       return;
     }
 
@@ -163,11 +173,12 @@ export default function CoachPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-3xl mx-auto space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
           <h1 className="text-2xl font-bold text-gray-900">AI Coach</h1>
-          <Link href="/app" className="text-sm text-pink-600 hover:text-pink-700">
-            Back to Home
-          </Link>
+          <p className="text-sm text-gray-600">
+            Private, supportive coaching for tough teaching moments.
+          </p>
+          <ProductNav current="/coach" />
         </div>
 
         {!conversationId ? (

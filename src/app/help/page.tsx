@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { rankPeerMentors } from "@/lib/help/matching";
+import { ProductNav } from "@/app/components/ProductNav";
 
 const CATEGORIES = ["classroom", "planning", "parents", "admin", "self"] as const;
 const FORMATS = ["async", "micro_session"] as const;
@@ -54,6 +55,14 @@ export default function HelpPage() {
   const [messages, setMessages] = useState<PeerMessage[]>([]);
   const [draft, setDraft] = useState("");
 
+  useEffect(() => {
+    const search = typeof window !== "undefined" ? window.location.search : "";
+    const requested = new URLSearchParams(search).get("category");
+    if (requested && CATEGORIES.includes(requested as Category)) {
+      setCategory(requested as Category);
+    }
+  }, []);
+
   const loadThread = useCallback(
     async (conversation: string) => {
       const { data, error: threadError } = await supabase
@@ -81,7 +90,7 @@ export default function HelpPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/login?redirect=/app/help");
+        router.replace("/login?redirect=/help");
         return;
       }
 
@@ -123,30 +132,7 @@ export default function HelpPage() {
       return;
     }
 
-    const scored = (mentors ?? []).map((mentor) => {
-      const reasonTags: string[] = [];
-      let score = 0;
-      if (mentor.specialties?.includes(category)) {
-        score += 2;
-        reasonTags.push("category_overlap");
-      }
-      if (mentor.availability_status === "available") {
-        score += 1;
-        reasonTags.push("available_now");
-      }
-      if (
-        mentor.response_time_estimate === "under_1h" ||
-        mentor.response_time_estimate === "same_day"
-      ) {
-        score += 1;
-        reasonTags.push("fast_response");
-      }
-      return { ...mentor, score, reasonTags };
-    });
-
-    scored.sort((a, b) => b.score - a.score);
-    const maxResults = Math.min(5, Math.max(3, scored.length));
-    const top = scored.slice(0, maxResults);
+    const top = rankPeerMentors(mentors ?? [], category);
 
     if (top.length === 0) {
       setMatches([]);
@@ -345,11 +331,12 @@ export default function HelpPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-5">
-        <div className="flex items-center justify-between">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
           <h1 className="text-2xl font-bold text-gray-900">Peer Help Network</h1>
-          <Link href="/app" className="text-sm text-pink-600 hover:text-pink-700">
-            Back to Home
-          </Link>
+          <p className="text-sm text-gray-600">
+            Get matched with peers by specialty and availability.
+          </p>
+          <ProductNav current="/help" />
         </div>
 
         {!conversationId && (

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fetchClaudeCoachReply, parseCoachReply } from "./coach";
+import { fetchClaudeCoachReply, hasSelfHarmKeywords, parseCoachReply } from "./coach";
 
 test("parseCoachReply accepts strict expected JSON shape", () => {
   const result = parseCoachReply(
@@ -47,4 +47,9 @@ test("fetchClaudeCoachReply uses mocked Claude response", async () => {
   const reply = await fetchClaudeCoachReply("I'm overwhelmed today", mockFetch);
   assert.equal(reply.meta.tone, "calm");
   assert.match(reply.text, /small next step/i);
+});
+
+test("hasSelfHarmKeywords detects crisis wording", () => {
+  assert.equal(hasSelfHarmKeywords("I want to die"), true);
+  assert.equal(hasSelfHarmKeywords("I need help planning tomorrow"), false);
 });
