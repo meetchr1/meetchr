@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes that require authentication
-const protectedRoutes = ["/hub"];
+const protectedRoutes = ["/hub", "/app"];
 
 // Routes that should redirect to /survey if already logged in
 const authRoutes = ["/login", "/signup"];
@@ -63,7 +63,7 @@ export async function middleware(request: NextRequest) {
 
     // Redirect authenticated users away from auth routes
     if (user && authRoutes.some((route) => pathname.startsWith(route))) {
-      return NextResponse.redirect(new URL("/survey", request.url));
+      return NextResponse.redirect(new URL("/app", request.url));
     }
 
     return supabaseResponse;

@@ -8,6 +8,9 @@ export interface Profile {
   id: string;
   email: string;
   full_name: string | null;
+  display_name: string | null;
+  pseudonym: string | null;
+  role: string | null;
   survey_completed: boolean;
   matched: boolean;
   // Extended fields (from 002 migration)
@@ -101,6 +104,149 @@ export interface CheckIn {
   energy: number;
   note: string | null;
   week_of: string;
+  created_at: string;
+}
+
+export interface DailyCheckin {
+  id: string;
+  user_id: string;
+  date: string;
+  heaviness: "light" | "manageable" | "heavy" | "not_ok";
+  theme: "classroom" | "planning" | "parents" | "admin" | "self";
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Conversation {
+  id: string;
+  owner_id: string;
+  provider: "ai" | "peer";
+  status: string;
+  last_message_at: string;
+  coach_summary: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CoachMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string | null;
+  content_type: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface MentorProfile {
+  user_id: string;
+  bio: string | null;
+  specialties: string[];
+  availability_status: string;
+  response_time_estimate: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HelpRequest {
+  id: string;
+  requester_id: string;
+  category: string;
+  format: "async" | "micro_session";
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PeerMatch {
+  id: string;
+  help_request_id: string;
+  matched_user_id: string;
+  rank: number;
+  reason_tags: string[];
+  created_at: string;
+}
+
+export interface ConversationParticipant {
+  conversation_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface PeerMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string | null;
+  content_type: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface Course {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Lesson {
+  id: string;
+  course_id: string;
+  title: string;
+  content: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Enrollment {
+  id: string;
+  user_id: string;
+  course_id: string;
+  enrolled_at: string;
+  completed_at: string | null;
+}
+
+export interface LessonProgress {
+  id: string;
+  user_id: string;
+  lesson_id: string;
+  completed: boolean;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Survey {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Question {
+  id: string;
+  survey_id: string;
+  prompt: string;
+  kind: "likert" | "free_text";
+  sort_order: number;
+  created_at: string;
+}
+
+export interface Response {
+  id: string;
+  survey_id: string;
+  question_id: string;
+  respondent_id: string;
+  likert_value: number | null;
+  free_text: string | null;
   created_at: string;
 }
 

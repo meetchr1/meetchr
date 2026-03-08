@@ -3,8 +3,8 @@
 import { Suspense, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Loader2, Mail, Lock } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { ArrowRight, Loader2, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -16,12 +16,11 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/survey";
+  const redirectTo = searchParams.get("redirect") || "/app";
   const urlError = searchParams.get("error");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(urlError);
   const [loading, setLoading] = useState(false);
 
@@ -33,9 +32,12 @@ function LoginForm() {
     const supabase = createClient();
 
     try {
-      const signInPromise = supabase.auth.signInWithPassword({
+      const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`;
+      const signInPromise = supabase.auth.signInWithOtp({
         email,
-        password,
+        options: {
+          emailRedirectTo,
+        },
       });
 
       // Timeout after 15 seconds so the spinner doesn't hang forever
@@ -46,10 +48,11 @@ function LoginForm() {
         )
       );
 
-      const { error: signInError } = await Promise.race([
+      const signInResult = await Promise.race([
         signInPromise,
         timeoutPromise,
       ]);
+      const { error: signInError } = signInResult;
 
       if (signInError) {
         setError(signInError.message);
@@ -57,8 +60,8 @@ function LoginForm() {
         return;
       }
 
-      router.push(redirectTo);
-      router.refresh();
+      setSent(true);
+      setLoading(false);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Something went wrong. Please try again."
@@ -82,11 +85,9 @@ function LoginForm() {
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
-            Welcome Back
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">Sign In</h1>
           <p className="text-gray-600 text-center mb-8">
-            Sign in to continue your mentorship journey
+            We&apos;ll email you a magic link
           </p>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -112,32 +113,16 @@ function LoginForm() {
               </div>
             </div>
 
-            {/* Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all"
-                />
-              </div>
-            </div>
-
             {/* Error */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 {error}
+              </div>
+            )}
+
+            {sent && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+                Check your inbox for the magic link.
               </div>
             )}
 
@@ -150,11 +135,11 @@ function LoginForm() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Signing in...
+                  Sending link...
                 </>
               ) : (
                 <>
-                  Sign In
+                  Send Magic Link
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}

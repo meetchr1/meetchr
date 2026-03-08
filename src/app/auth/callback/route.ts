@@ -4,13 +4,33 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/survey";
+  const next = searchParams.get("next") ?? "/app";
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      const user = data.user ?? data.session?.user;
+      if (user) {
+        await supabase.from("profiles").upsert(
+          {
+            id: user.id,
+            email: user.email ?? "",
+            display_name:
+              (user.user_metadata?.display_name as string | undefined) ??
+              (user.user_metadata?.full_name as string | undefined) ??
+              user.email?.split("@")[0] ??
+              "Teacher",
+            pseudonym:
+              (user.user_metadata?.pseudonym as string | undefined) ??
+              null,
+            role:
+              (user.user_metadata?.role as string | undefined) ?? "teacher",
+          },
+          { onConflict: "id" }
+        );
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

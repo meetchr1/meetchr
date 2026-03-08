@@ -6,7 +6,7 @@
 -- 1. PROFILES TABLE
 -- Extends Supabase auth.users with teacher-specific info
 -- ============================================================
-create table public.profiles (
+create table if not exists public.profiles (
   id uuid references auth.users(id) on delete cascade primary key,
   email text not null,
   full_name text,
@@ -20,14 +20,17 @@ create table public.profiles (
 alter table public.profiles enable row level security;
 
 -- Profiles policies
+drop policy if exists "Users can view their own profile" on public.profiles;
 create policy "Users can view their own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
+drop policy if exists "Users can update their own profile" on public.profiles;
 create policy "Users can update their own profile"
   on public.profiles for update
   using (auth.uid() = id);
 
+drop policy if exists "Users can insert their own profile" on public.profiles;
 create policy "Users can insert their own profile"
   on public.profiles for insert
   with check (auth.uid() = id);
@@ -57,7 +60,7 @@ create trigger on_auth_user_created
 -- 2. SURVEY RESPONSES TABLE
 -- Stores all 41 survey question answers per teacher
 -- ============================================================
-create table public.survey_responses (
+create table if not exists public.survey_responses (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null unique,
 
@@ -115,27 +118,30 @@ create table public.survey_responses (
 alter table public.survey_responses enable row level security;
 
 -- Survey responses policies
+drop policy if exists "Users can view their own survey response" on public.survey_responses;
 create policy "Users can view their own survey response"
   on public.survey_responses for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert their own survey response" on public.survey_responses;
 create policy "Users can insert their own survey response"
   on public.survey_responses for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update their own survey response" on public.survey_responses;
 create policy "Users can update their own survey response"
   on public.survey_responses for update
   using (auth.uid() = user_id);
 
 -- Index for fast lookups by role (used heavily in matching)
-create index idx_survey_responses_role on public.survey_responses(role);
-create index idx_survey_responses_user_id on public.survey_responses(user_id);
+create index if not exists idx_survey_responses_role on public.survey_responses(role);
+create index if not exists idx_survey_responses_user_id on public.survey_responses(user_id);
 
 
 -- 3. MATCHES TABLE
 -- Pairs a mentor teacher with a novice teacher
 -- ============================================================
-create table public.matches (
+create table if not exists public.matches (
   id uuid default gen_random_uuid() primary key,
   mentor_id uuid references public.profiles(id) on delete cascade not null,
   novice_id uuid references public.profiles(id) on delete cascade not null,
@@ -153,10 +159,12 @@ create table public.matches (
 alter table public.matches enable row level security;
 
 -- Match policies — teachers can see their own matches
+drop policy if exists "Mentors can view their matches" on public.matches;
 create policy "Mentors can view their matches"
   on public.matches for select
   using (auth.uid() = mentor_id);
 
+drop policy if exists "Novices can view their matches" on public.matches;
 create policy "Novices can view their matches"
   on public.matches for select
   using (auth.uid() = novice_id);
@@ -172,10 +180,12 @@ begin
 end;
 $$ language plpgsql;
 
+drop trigger if exists profiles_updated_at on public.profiles;
 create trigger profiles_updated_at
   before update on public.profiles
   for each row execute function public.update_updated_at();
 
+drop trigger if exists survey_responses_updated_at on public.survey_responses;
 create trigger survey_responses_updated_at
   before update on public.survey_responses
   for each row execute function public.update_updated_at();
@@ -184,7 +194,7 @@ create trigger survey_responses_updated_at
 -- 5. CHECK-INS TABLE
 -- Weekly vibe checks: confidence & energy levels (1-10)
 -- ============================================================
-create table public.check_ins (
+create table if not exists public.check_ins (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   confidence integer not null check (confidence between 1 and 10),
@@ -200,19 +210,22 @@ create table public.check_ins (
 -- Enable RLS
 alter table public.check_ins enable row level security;
 
+drop policy if exists "Users can view their own check-ins" on public.check_ins;
 create policy "Users can view their own check-ins"
   on public.check_ins for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert their own check-ins" on public.check_ins;
 create policy "Users can insert their own check-ins"
   on public.check_ins for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update their own check-ins" on public.check_ins;
 create policy "Users can update their own check-ins"
   on public.check_ins for update
   using (auth.uid() = user_id);
 
-create index idx_check_ins_user_week on public.check_ins(user_id, week_of);
+create index if not exists idx_check_ins_user_week on public.check_ins(user_id, week_of);
 
 
 -- 6. MATCHING
