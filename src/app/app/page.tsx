@@ -160,25 +160,25 @@ export default function TeacherHomePage() {
           <h1 className="text-2xl font-bold text-gray-900">Teacher Home</h1>
           <div className="flex items-center gap-2">
             <Link
-              href="/app/coach"
+              href="/coach"
               className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border border-pink-300 text-pink-700 hover:bg-pink-50"
             >
               AI coach chat
             </Link>
             <Link
-              href="/app/help"
+              href="/help"
               className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border border-blue-300 text-blue-700 hover:bg-blue-50"
             >
               Peer help network
             </Link>
             <Link
-              href="/app/academy"
+              href="/academy"
               className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50"
             >
               Academy
             </Link>
             <Link
-              href="/app/admin"
+              href="/admin"
               className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border border-violet-300 text-violet-700 hover:bg-violet-50"
             >
               Admin
