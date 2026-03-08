@@ -4,8 +4,11 @@ import Link from "next/link";
 
 const NAV_ITEMS = [
   { href: "/portal", label: "Portal" },
+  { href: "/survey", label: "Matching Survey" },
   { href: "/coach", label: "AI Coach" },
   { href: "/help", label: "Peer Help" },
+  { href: "/hub", label: "Live Hub" },
+  { href: "/hub/classic", label: "Mentor Suite" },
   { href: "/academy", label: "Academy" },
   { href: "/admin", label: "Admin" },
 ] as const;

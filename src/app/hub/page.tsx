@@ -33,6 +33,19 @@ export default function MentorshipHub() {
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
+    const search =
+      typeof window !== "undefined" ? window.location.search : "";
+    const requestedTab = new URLSearchParams(search).get("tab");
+    if (
+      requestedTab === "chat" ||
+      requestedTab === "workspace" ||
+      requestedTab === "resources"
+    ) {
+      setMobileTab(requestedTab);
+    }
+  }, []);
+
+  useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {

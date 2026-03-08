@@ -265,6 +265,41 @@ export default function PortalPage() {
           </Link>
         </section>
 
+        <section className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-gray-800">
+            Mentorship tools
+          </h2>
+          <p className="text-sm text-gray-600">
+            Access the matching survey and live mentorship workspace.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Link
+              href="/survey"
+              className="px-3 py-2 rounded-lg border border-violet-300 text-violet-700 text-sm hover:bg-violet-50"
+            >
+              Open matching survey
+            </Link>
+            <Link
+              href="/hub?tab=chat"
+              className="px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 text-sm hover:bg-emerald-50"
+            >
+              Open live chat
+            </Link>
+            <Link
+              href="/hub?tab=workspace"
+              className="px-3 py-2 rounded-lg border border-cyan-300 text-cyan-700 text-sm hover:bg-cyan-50"
+            >
+              Start video session
+            </Link>
+          </div>
+          <Link
+            href="/hub/classic"
+            className="inline-flex items-center px-3 py-2 rounded-lg border border-pink-300 text-pink-700 text-sm hover:bg-pink-50"
+          >
+            Open full mentorship suite (chat, video, workspace, goals, notes)
+          </Link>
+        </section>
+
         <section className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="text-sm font-semibold text-gray-800 mb-3">
             Last 7 check-ins
