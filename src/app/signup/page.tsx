@@ -51,7 +51,7 @@ export default function SignUpPage() {
           data: {
             full_name: fullName,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/portal")}`,
         },
       });
 
@@ -76,7 +76,7 @@ export default function SignUpPage() {
 
       // If session exists, email confirmation is disabled — redirect immediately
       if (data.session) {
-        router.push("/survey");
+        router.push("/survey?redirect=/portal");
         router.refresh();
         return;
       }

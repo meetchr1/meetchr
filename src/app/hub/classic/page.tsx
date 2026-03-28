@@ -41,7 +41,7 @@ export default function ClassicMentorshipSuitePage() {
           .single();
 
         if (!profile?.survey_completed) {
-          router.replace("/survey");
+          router.replace("/survey?redirect=/hub/classic");
           return;
         }
 

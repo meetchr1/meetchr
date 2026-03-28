@@ -1,28 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Survey } from "@/app/components/Survey";
 import { Loader2 } from "lucide-react";
+import { safeAfterSurveyPath } from "@/lib/auth/matchingSurvey";
 
 export default function SurveyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-coral-50">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-pink-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <SurveyPageContent />
+    </Suspense>
+  );
+}
+
+function SurveyPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [checking, setChecking] = useState(true);
+  const afterSurvey = safeAfterSurveyPath(
+    searchParams.get("redirect"),
+    "/portal"
+  );
 
   useEffect(() => {
     const checkSurveyStatus = async () => {
       try {
         const { createClient } = await import("@/lib/supabase/client");
         const supabase = createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
 
         if (authError || !user) {
-          // No auth — show survey in demo mode
           setChecking(false);
           return;
         }
 
-        // Check if survey is already completed
         const { data: profile } = await supabase
           .from("profiles")
           .select("survey_completed")
@@ -30,19 +54,18 @@ export default function SurveyPage() {
           .single();
 
         if (profile?.survey_completed) {
-          router.push("/portal");
+          router.replace(afterSurvey);
           return;
         }
 
         setChecking(false);
       } catch {
-        // Supabase unavailable — show survey in demo mode
         setChecking(false);
       }
     };
 
-    checkSurveyStatus();
-  }, [router]);
+    void checkSurveyStatus();
+  }, [router, afterSurvey]);
 
   if (checking) {
     return (
@@ -58,7 +81,7 @@ export default function SurveyPage() {
   return (
     <Survey
       onComplete={() => {
-        router.push("/portal");
+        router.push(afterSurvey);
         router.refresh();
       }}
     />

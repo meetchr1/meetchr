@@ -38,6 +38,7 @@ export default function PortalPage() {
   const [theme, setTheme] = useState<HelpCategory>("classroom");
   const [checkins, setCheckins] = useState<CheckinRow[]>([]);
   const [helpCategory, setHelpCategory] = useState<HelpCategory>("classroom");
+  const [waitingForMatch, setWaitingForMatch] = useState(false);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const loadPortal = useCallback(async () => {
@@ -178,6 +179,21 @@ export default function PortalPage() {
           </p>
           <ProductNav current="/portal" />
         </div>
+
+        {waitingForMatch && (
+          <div
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            role="status"
+          >
+            <p className="font-medium text-amber-900">
+              We&apos;re still pairing you with another teacher for mentorship.
+            </p>
+            <p className="mt-1 text-amber-800/90">
+              You can use everything here while we find a good match—check-ins,
+              help requests, and the rest of the app stay open.
+            </p>
+          </div>
+        )}
 
         <p className="text-gray-600">Hi {name}, how is today feeling?</p>
 

@@ -1,10 +1,23 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  MATCHING_SURVEY_PATH,
+  pathnameRequiresMatchingSurvey,
+  isSurveyCompleted,
+} from "@/lib/auth/matchingSurvey";
 
 // Routes that require authentication
-const protectedRoutes = ["/hub", "/app", "/portal"];
+const protectedRoutes = [
+  "/hub",
+  "/app",
+  "/portal",
+  "/coach",
+  "/academy",
+  "/help",
+  "/admin",
+];
 
-// Routes that should redirect to /survey if already logged in
+// Routes that should redirect to portal (or matching survey) if already logged in
 const authRoutes = ["/login", "/signup"];
 
 export async function middleware(request: NextRequest) {
@@ -61,8 +74,34 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
+    // Logged-in teachers must complete the matching survey before using the app
+    if (user && pathnameRequiresMatchingSurvey(pathname)) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("survey_completed")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!isSurveyCompleted(profile?.survey_completed)) {
+        const surveyUrl = new URL(MATCHING_SURVEY_PATH, request.url);
+        const dest =
+          pathname + (request.nextUrl.search ? request.nextUrl.search : "");
+        surveyUrl.searchParams.set("redirect", dest);
+        return NextResponse.redirect(surveyUrl);
+      }
+    }
+
     // Redirect authenticated users away from auth routes
     if (user && authRoutes.some((route) => pathname.startsWith(route))) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("survey_completed")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!isSurveyCompleted(profile?.survey_completed)) {
+        return NextResponse.redirect(new URL(MATCHING_SURVEY_PATH, request.url));
+      }
       return NextResponse.redirect(new URL("/portal", request.url));
     }
 
