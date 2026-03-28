@@ -55,7 +55,7 @@ create policy "Matched partners can view each other's profile"
 -- 2. MESSAGES TABLE
 --    Chat messages between matched pairs (Chat.tsx)
 -- ============================================================
-create table public.messages (
+create table if not exists public.messages (
   id uuid default gen_random_uuid() primary key,
   match_id uuid references public.matches(id) on delete cascade not null,
   sender_id uuid references public.profiles(id) on delete cascade not null,
@@ -73,10 +73,12 @@ create table public.messages (
 
 alter table public.messages enable row level security;
 
+drop policy if exists "Match members can view messages" on public.messages;
 create policy "Match members can view messages"
   on public.messages for select
   using (public.is_match_member(match_id));
 
+drop policy if exists "Match members can send messages" on public.messages;
 create policy "Match members can send messages"
   on public.messages for insert
   with check (
@@ -84,6 +86,7 @@ create policy "Match members can send messages"
     and public.is_match_member(match_id)
   );
 
+drop policy if exists "Recipients can mark messages as read" on public.messages;
 create policy "Recipients can mark messages as read"
   on public.messages for update
   using (
@@ -91,8 +94,8 @@ create policy "Recipients can mark messages as read"
     and sender_id != auth.uid()
   );
 
-create index idx_messages_match_id on public.messages(match_id, created_at desc);
-create index idx_messages_sender_id on public.messages(sender_id);
+create index if not exists idx_messages_match_id on public.messages(match_id, created_at desc);
+create index if not exists idx_messages_sender_id on public.messages(sender_id);
 
 
 -- ============================================================
@@ -802,7 +805,18 @@ insert into public.resources (title, description, type, category, url, is_featur
 -- 24. REALTIME SUBSCRIPTIONS
 --     Enable realtime for tables that need live updates
 -- ============================================================
-alter publication supabase_realtime add table public.messages;
+-- Safe if migration is re-run or table was created earlier
+do $$
+begin
+  alter publication supabase_realtime add table public.messages;
+exception
+  when others then
+    if sqlerrm ilike '%already member of publication%' or sqlstate = '42710' then
+      null;
+    else
+      raise;
+    end if;
+end $$;
 alter publication supabase_realtime add table public.video_sessions;
 alter publication supabase_realtime add table public.scheduled_sessions;
 alter publication supabase_realtime add table public.check_ins;
